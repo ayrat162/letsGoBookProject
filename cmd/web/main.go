@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"letsGoProject.ayrat.dev/internal/models"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
@@ -20,16 +22,20 @@ func main() {
 	dsn := flag.String("dsn", "postgresql://localhost/snippetbox?user=web@localhost&password=pass", "Postgres data source name")
 	flag.Parse()
 
-	app := &application{
-		errorLog: log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
-		infoLog:  log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime),
-	}
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 
 	db, err := openDB(*dsn)
 	if err != nil {
-		app.errorLog.Fatal(err)
+		errorLog.Fatal(err)
 	}
 	defer db.Close()
+
+	app := &application{
+		errorLog: errorLog,
+		infoLog:  infoLog,
+		snippets: &models.SnippetModel{DB: db},
+	}
 
 	srv := &http.Server{
 		Addr:     *addr,
